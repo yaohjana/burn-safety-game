@@ -2,9 +2,15 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="description" content="生活科技教室安全教育互動測驗：學習正確的燙傷急救 SOP (沖脫泡蓋送)。">
+    <meta property="og:title" content="燙傷急救大作戰">
+    <meta property="og:description" content="你能做出正確的判斷嗎？生活科技安全教育互動小遊戲。">
     <title>生活科技教室：燙傷急救大作戰</title>
     
+    <!-- 動態生成 Favicon -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🚑</text></svg>">
+
     <!-- 引入 React 和 ReactDOM -->
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -15,101 +21,173 @@
     <!-- 引入 Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- 定義動畫樣式 -->
+    <!-- 配置 Tailwind -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    animation: {
+                        'shake': 'shake 0.5s cubic-bezier(.36,.07,.19,.97) both',
+                        'blob': 'blob 7s infinite',
+                        'pop': 'pop 0.3s ease-out forwards',
+                        'slide-up': 'slideUp 0.5s ease-out forwards',
+                    },
+                    keyframes: {
+                        shake: {
+                            '0%, 100%': { transform: 'translateX(0)' },
+                            '10%, 30%, 50%, 70%, 90%': { transform: 'translateX(-4px)' },
+                            '20%, 40%, 60%, 80%': { transform: 'translateX(4px)' },
+                        },
+                        blob: {
+                            '0%': { transform: 'translate(0px, 0px) scale(1)' },
+                            '33%': { transform: 'translate(30px, -50px) scale(1.1)' },
+                            '66%': { transform: 'translate(-20px, 20px) scale(0.9)' },
+                            '100%': { transform: 'translate(0px, 0px) scale(1)' },
+                        },
+                        pop: {
+                            '0%': { transform: 'scale(0.8)', opacity: '0' },
+                            '100%': { transform: 'scale(1)', opacity: '1' },
+                        },
+                        slideUp: {
+                            '0%': { transform: 'translateY(20px)', opacity: '0' },
+                            '100%': { transform: 'translateY(0)', opacity: '1' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
     <style>
-        @keyframes shake {
-          0%, 100% { transform: translateX(0); }
-          10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
-          20%, 40%, 60%, 80% { transform: translateX(5px); }
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap');
+        
+        body {
+            font-family: 'Noto Sans TC', system-ui, -apple-system, sans-serif;
+            background-color: #f0f4f8;
+            -webkit-tap-highlight-color: transparent;
         }
-        .animate-shake {
-          animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both;
+
+        /* 自定義滾動條 */
+        ::-webkit-scrollbar {
+            width: 8px;
         }
-        .animate-blob {
-          animation: blob 7s infinite;
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1; 
         }
-        @keyframes blob {
-          0% { transform: translate(0px, 0px) scale(1); }
-          33% { transform: translate(30px, -50px) scale(1.1); }
-          66% { transform: translate(-20px, 20px) scale(0.9); }
-          100% { transform: translate(0px, 0px) scale(1); }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1; 
+            border-radius: 4px;
         }
-        .animation-delay-2000 { animation-delay: 2s; }
-        .animation-delay-4000 { animation-delay: 4s; }
-        .animate-bounce-short {
-            animation: bounce 1s infinite;
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8; 
         }
-        @keyframes bounce {
-            0%, 100% { transform: translateY(-5%); animation-timing-function: cubic-bezier(0.8, 0, 1, 1); }
-            50% { transform: translateY(0); animation-timing-function: cubic-bezier(0, 0, 0.2, 1); }
-        }
-        .animate-fade-in {
-            animation: fadeIn 0.5s ease-in-out;
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
+
+        /* 玻璃擬態效果 */
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
         }
     </style>
 </head>
-<body class="bg-slate-100">
+<body class="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 text-slate-800">
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState, useEffect } = React;
+        const { useState, useEffect, useMemo, useRef } = React;
 
-        // --- Icons Components (內嵌 SVG 以確保單檔執行無誤) ---
-        const IconBase = ({ children, className, ...props }) => (
-            <svg 
-                xmlns="http://www.w3.org/2000/svg" 
-                width="24" height="24" viewBox="0 0 24 24" 
-                fill="none" stroke="currentColor" strokeWidth="2" 
-                strokeLinecap="round" strokeLinejoin="round" 
-                className={className} {...props}
-            >
-                {children}
-            </svg>
-        );
+        // --- 音效合成器 (Web Audio API) ---
+        const SoundGenerator = {
+            ctx: null,
+            init: () => {
+                if (!SoundGenerator.ctx) {
+                    const AudioContext = window.AudioContext || window.webkitAudioContext;
+                    SoundGenerator.ctx = new AudioContext();
+                }
+            },
+            play: (type) => {
+                if (!SoundGenerator.ctx) SoundGenerator.init();
+                const ctx = SoundGenerator.ctx;
+                if (ctx.state === 'suspended') ctx.resume(); // 確保瀏覽器允許播放
 
-        const Flame = (props) => (
-            <IconBase {...props}><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-2.24-4.056-2.953-5.26a1.996 1.996 0 0 1 2.37-2.673C11.956 2.362 13.986 4.6 14.392 7.234a4.004 4.004 0 0 0 2.227-2.173 8.01 8.01 0 0 1 1.764 7.641 2.497 2.497 0 0 0 .543 2.58c1.378 1.48 2.074 2.3 2.074 4.218C21 21.61 19.388 23 17.5 23h-9C5.322 23 4 21.572 4 19.5c0-2.486 1.83-4.5 4.5-5z"/></IconBase>
-        );
-        const School = (props) => (
-            <IconBase {...props}><path d="M14 22v-4a2 2 0 1 0-4 0v4"/><path d="m18 10 4 2v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-8l4-2"/><path d="M18 5v17"/><path d="m4 6 8-4 8 4"/><path d="M6 5v17"/><circle cx="12" cy="9" r="2"/></IconBase>
-        );
-        const Droplets = (props) => (
-            <IconBase {...props}><path d="M7 16.3c2.2 0 4-1.83 4-4.05 0-1.16-.57-2.26-1.71-3.19S7.29 6.75 7 5.3c-.29 1.45-1.14 2.84-2.29 3.76S3 11.1 3 12.25c0 2.22 1.8 4.05 4 4.05z"/><path d="M12.56 6.6A10.97 10.97 0 0 0 14 3.02c.5 2.5 2 4.9 4 6.5s3 3.5 3 5.5a6.98 6.98 0 0 1-11.91 4.35c.71-1.11 1.16-2.33 1.16-4.02 0-1.28-.45-2.53-1.69-3.75"/></IconBase>
-        );
-        const Bandage = (props) => (
-            <IconBase {...props}><path d="M14 12v.01"/><path d="M10 12v.01"/><path d="M8.5 14c0 1.1-.9 2-2 2h-1c-1.1 0-2-.9-2-2V8c0-1.1.9-2 2-2h1c1.1 0 2 .9 2 2v6Z" transform="rotate(-45 12 12)"/><path d="M17.5 10c0 1.1-.9 2-2 2h-1c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h1c1.1 0 2 .9 2 2v6Z" transform="rotate(45 12 12)"/></IconBase>
-        );
-        const Ambulance = (props) => (
-            <IconBase {...props}><path d="M10 10h4"/><path d="M12 8v4"/><path d="M19 17h1.5c.3 0 .6-.1.8-.4l2-3c.2-.3.2-.6.2-1v-4c0-.6-.4-1-1-1H16"/><path d="M4 17h3"/><path d="M7 17a3 3 0 0 1 3 3v0a3 3 0 0 1-3 3 3 3 0 0 1-3-3v0a3 3 0 0 1 3-3Z"/><path d="M15 17h1"/><path d="M16 17a3 3 0 0 1 3 3v0a3 3 0 0 1-3 3 3 3 0 0 1-3-3v0a3 3 0 0 1 3-3Z"/><path d="M10 17h6"/><path d="M1 5h12a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H1a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Z"/></IconBase>
-        );
-        const AlertTriangle = (props) => (
-            <IconBase {...props}><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></IconBase>
-        );
-        const CheckCircle = (props) => (
-            <IconBase {...props}><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></IconBase>
-        );
-        const XCircle = (props) => (
-            <IconBase {...props}><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></IconBase>
-        );
-        const Scissors = (props) => (
-            <IconBase {...props}><circle cx="6" cy="6" r="3"/><path d="M8.12 8.12 12 12"/><path d="M20 4 8.12 15.88"/><circle cx="6" cy="18" r="3"/><path d="M14.8 14.8 20 20"/></IconBase>
-        );
-        const ThermometerSnowflake = (props) => (
-            <IconBase {...props}><path d="M2 12h10"/><path d="M9 4v16"/><path d="m3 9 3 3-3 3"/><path d="M12 6a9 9 0 0 0 0 12v-3"/><path d="M12 3a9 9 0 0 1 9 9 9 9 0 0 1-9 9"/></IconBase>
-        );
-        const RefreshCw = (props) => (
-            <IconBase {...props}><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></IconBase>
-        );
-        const Heart = (props) => (
-            <IconBase {...props}><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></IconBase>
-        );
+                const t = ctx.currentTime;
+                
+                switch (type) {
+                    case 'correct':
+                        // 叮咚！ (高音正弦波滑音)
+                        const osc1 = ctx.createOscillator();
+                        const gain1 = ctx.createGain();
+                        osc1.type = 'sine';
+                        osc1.frequency.setValueAtTime(523.25, t); // C5
+                        osc1.frequency.exponentialRampToValueAtTime(880, t + 0.1); // A5
+                        gain1.gain.setValueAtTime(0.1, t);
+                        gain1.gain.exponentialRampToValueAtTime(0.01, t + 0.6);
+                        osc1.connect(gain1);
+                        gain1.connect(ctx.destination);
+                        osc1.start(t);
+                        osc1.stop(t + 0.6);
+                        break;
+                    case 'wrong':
+                        // 錯誤音效 (低音鋸齒波)
+                        const osc2 = ctx.createOscillator();
+                        const gain2 = ctx.createGain();
+                        osc2.type = 'sawtooth';
+                        osc2.frequency.setValueAtTime(150, t);
+                        osc2.frequency.linearRampToValueAtTime(100, t + 0.3);
+                        gain2.gain.setValueAtTime(0.1, t);
+                        gain2.gain.linearRampToValueAtTime(0.01, t + 0.3);
+                        osc2.connect(gain2);
+                        gain2.connect(ctx.destination);
+                        osc2.start(t);
+                        osc2.stop(t + 0.3);
+                        break;
+                    case 'click':
+                        // 輕微點擊聲
+                        const osc3 = ctx.createOscillator();
+                        const gain3 = ctx.createGain();
+                        osc3.frequency.setValueAtTime(600, t);
+                        gain3.gain.setValueAtTime(0.05, t);
+                        gain3.gain.exponentialRampToValueAtTime(0.01, t + 0.1);
+                        osc3.connect(gain3);
+                        gain3.connect(ctx.destination);
+                        osc3.start(t);
+                        osc3.stop(t + 0.1);
+                        break;
+                    case 'victory':
+                        // 勝利音樂 (C大調琶音)
+                        [523.25, 659.25, 783.99, 1046.50].forEach((freq, i) => {
+                            const osc = ctx.createOscillator();
+                            const gain = ctx.createGain();
+                            osc.type = 'triangle';
+                            osc.frequency.value = freq;
+                            gain.gain.setValueAtTime(0.05, t + i * 0.1);
+                            gain.gain.exponentialRampToValueAtTime(0.01, t + i * 0.1 + 0.6);
+                            osc.connect(gain);
+                            gain.connect(ctx.destination);
+                            osc.start(t + i * 0.1);
+                            osc.stop(t + i * 0.1 + 0.6);
+                        });
+                        break;
+                    case 'gameover':
+                        // 失敗音樂 (下行音階)
+                        [440, 415, 392, 370].forEach((freq, i) => {
+                            const osc = ctx.createOscillator();
+                            const gain = ctx.createGain();
+                            osc.type = 'triangle';
+                            osc.frequency.value = freq;
+                            gain.gain.setValueAtTime(0.1, t + i * 0.3);
+                            gain.gain.linearRampToValueAtTime(0.01, t + i * 0.3 + 0.6);
+                            osc.connect(gain);
+                            gain.connect(ctx.destination);
+                            osc.start(t + i * 0.3);
+                            osc.stop(t + i * 0.3 + 0.6);
+                        });
+                        break;
+                }
+            }
+        };
 
-        // --- Game Logic ---
-        
+        // --- 資料設定 ---
         const GAME_STATES = {
             START: 'start',
             PLAYING: 'playing',
@@ -118,11 +196,34 @@
             LEARNING: 'learning'
         };
 
+        // --- Icons Components (SVG) ---
+        const IconBase = ({ children, className, ...props }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>{children}</svg>
+        );
+
+        const Icons = {
+            Flame: (props) => <IconBase {...props}><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-2.24-4.056-2.953-5.26a1.996 1.996 0 0 1 2.37-2.673C11.956 2.362 13.986 4.6 14.392 7.234a4.004 4.004 0 0 0 2.227-2.173 8.01 8.01 0 0 1 1.764 7.641 2.497 2.497 0 0 0 .543 2.58c1.378 1.48 2.074 2.3 2.074 4.218C21 21.61 19.388 23 17.5 23h-9C5.322 23 4 21.572 4 19.5c0-2.486 1.83-4.5 4.5-5z"/></IconBase>,
+            School: (props) => <IconBase {...props}><path d="M14 22v-4a2 2 0 1 0-4 0v4"/><path d="m18 10 4 2v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-8l4-2"/><path d="M18 5v17"/><path d="m4 6 8-4 8 4"/><path d="M6 5v17"/><circle cx="12" cy="9" r="2"/></IconBase>,
+            Droplets: (props) => <IconBase {...props}><path d="M7 16.3c2.2 0 4-1.83 4-4.05 0-1.16-.57-2.26-1.71-3.19S7.29 6.75 7 5.3c-.29 1.45-1.14 2.84-2.29 3.76S3 11.1 3 12.25c0 2.22 1.8 4.05 4 4.05z"/><path d="M12.56 6.6A10.97 10.97 0 0 0 14 3.02c.5 2.5 2 4.9 4 6.5s3 3.5 3 5.5a6.98 6.98 0 0 1-11.91 4.35c.71-1.11 1.16-2.33 1.16-4.02 0-1.28-.45-2.53-1.69-3.75"/></IconBase>,
+            Bandage: (props) => <IconBase {...props}><path d="M14 12v.01"/><path d="M10 12v.01"/><path d="M8.5 14c0 1.1-.9 2-2 2h-1c-1.1 0-2-.9-2-2V8c0-1.1.9-2 2-2h1c1.1 0 2 .9 2 2v6Z" transform="rotate(-45 12 12)"/><path d="M17.5 10c0 1.1-.9 2-2 2h-1c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h1c1.1 0 2 .9 2 2v6Z" transform="rotate(45 12 12)"/></IconBase>,
+            Ambulance: (props) => <IconBase {...props}><path d="M10 10h4"/><path d="M12 8v4"/><path d="M19 17h1.5c.3 0 .6-.1.8-.4l2-3c.2-.3.2-.6.2-1v-4c0-.6-.4-1-1-1H16"/><path d="M4 17h3"/><path d="M7 17a3 3 0 0 1 3 3v0a3 3 0 0 1-3 3 3 3 0 0 1-3-3v0a3 3 0 0 1 3-3Z"/><path d="M15 17h1"/><path d="M16 17a3 3 0 0 1 3 3v0a3 3 0 0 1-3 3 3 3 0 0 1-3-3v0a3 3 0 0 1 3-3Z"/><path d="M10 17h6"/><path d="M1 5h12a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H1a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Z"/></IconBase>,
+            AlertTriangle: (props) => <IconBase {...props}><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></IconBase>,
+            CheckCircle: (props) => <IconBase {...props}><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></IconBase>,
+            XCircle: (props) => <IconBase {...props}><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></IconBase>,
+            Scissors: (props) => <IconBase {...props}><circle cx="6" cy="6" r="3"/><path d="M8.12 8.12 12 12"/><path d="M20 4 8.12 15.88"/><circle cx="6" cy="18" r="3"/><path d="M14.8 14.8 20 20"/></IconBase>,
+            ThermometerSnowflake: (props) => <IconBase {...props}><path d="M2 12h10"/><path d="M9 4v16"/><path d="m3 9 3 3-3 3"/><path d="M12 6a9 9 0 0 0 0 12v-3"/><path d="M12 3a9 9 0 0 1 9 9 9 9 0 0 1-9 9"/></IconBase>,
+            RefreshCw: (props) => <IconBase {...props}><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></IconBase>,
+            Heart: (props) => <IconBase {...props}><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></IconBase>,
+            ChevronRight: (props) => <IconBase {...props}><path d="m9 18 6-6-6-6"/></IconBase>,
+            Volume2: (props) => <IconBase {...props}><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></IconBase>,
+            VolumeX: (props) => <IconBase {...props}><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><line x1="23" y1="9" x2="17" y2="15"></line><line x1="17" y1="9" x2="23" y2="15"></line></IconBase>
+        };
+
         const SCENARIOS = [
             {
                 stepName: "第一步：沖",
                 description: "你在焊接電路板時，不小心被高溫的電烙鐵燙到了手背！現在非常痛，你該怎麼做？",
-                icon: <Flame className="w-16 h-16 text-orange-500 animate-pulse" />,
+                icon: <Icons.Flame className="w-16 h-16 text-orange-500 animate-pulse drop-shadow-md" />,
                 options: [
                     { id: 'ice', text: "直接拿冰塊冰敷", type: 'wrong', feedback: "錯誤！直接冰敷會造成血管過度收縮，甚至導致凍傷。" },
                     { id: 'water', text: "用流動的冷水沖洗傷口", type: 'correct', feedback: "正確！流動的冷水可以帶走熱能，降低組織傷害。至少沖洗15-30分鐘。" },
@@ -132,7 +233,7 @@
             {
                 stepName: "第二步：脫",
                 description: "已經沖水一陣子了，但你穿著長袖的實習工廠制服，袖子覆蓋在傷口上。下一步？",
-                icon: <School className="w-16 h-16 text-blue-500" />,
+                icon: <Icons.School className="w-16 h-16 text-blue-500 drop-shadow-md" />,
                 options: [
                     { id: 'rip', text: "用力把袖子扯下來", type: 'wrong', feedback: "錯誤！強行脫掉可能會連同水泡或皮膚一起撕下，造成二次傷害。" },
                     { id: 'cut', text: "在水中小心剪開或脫去衣物", type: 'correct', feedback: "正確！利用水的潤滑，小心地剪開或移除衣物。如果黏住皮膚就不要硬脫。" },
@@ -142,7 +243,7 @@
             {
                 stepName: "第三步：泡",
                 description: "衣物已經移除了。為了持續降溫並減輕疼痛，你應該？",
-                icon: <Droplets className="w-16 h-16 text-blue-400" />,
+                icon: <Icons.Droplets className="w-16 h-16 text-cyan-400 drop-shadow-md" />,
                 options: [
                     { id: 'soak', text: "繼續浸泡在冷水中", type: 'correct', feedback: "正確！浸泡冷水（約15-30分鐘）可以持續降溫並減輕疼痛。" },
                     { id: 'alcohol', text: "浸泡在酒精裡消毒", type: 'wrong', feedback: "錯誤！酒精會刺激傷口，造成劇烈疼痛並破壞組織。" },
@@ -152,7 +253,7 @@
             {
                 stepName: "第四步：蓋",
                 description: "疼痛感稍微減輕了。現在要準備前往保健室或醫院，保護傷口該怎麼做？",
-                icon: <Bandage className="w-16 h-16 text-green-500" />,
+                icon: <Icons.Bandage className="w-16 h-16 text-emerald-500 drop-shadow-md" />,
                 options: [
                     { id: 'tissue', text: "用衛生紙包起來", type: 'wrong', feedback: "錯誤！衛生紙遇水會爛掉並黏在傷口上，極難清理。" },
                     { id: 'cotton', text: "用棉花棒擦乾", type: 'wrong', feedback: "錯誤！棉絮會黏在傷口上。" },
@@ -162,7 +263,7 @@
             {
                 stepName: "第五步：送",
                 description: "傷口已經初步處理並覆蓋好了。最後一步？",
-                icon: <Ambulance className="w-16 h-16 text-red-500" />,
+                icon: <Icons.Ambulance className="w-16 h-16 text-red-500 drop-shadow-md" />,
                 options: [
                     { id: 'home', text: "沒事了，回教室繼續上課", type: 'wrong', feedback: "錯誤！燙傷程度需要由專業人員判斷。" },
                     { id: 'hospital', text: "儘速送醫或找校護處理", type: 'correct', feedback: "正確！對於嚴重或面積大的燙傷，必須交由專業醫護人員處理。" },
@@ -171,6 +272,51 @@
             }
         ];
 
+        // --- 子元件 ---
+        
+        const Button = ({ onClick, variant = 'primary', className, children, ...props }) => {
+            const baseStyles = "w-full py-4 px-6 rounded-xl font-bold shadow-lg transform transition-all active:scale-95 duration-200 flex items-center justify-center gap-2";
+            const variants = {
+                primary: "bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white shadow-blue-500/30",
+                success: "bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600 text-white shadow-green-500/30",
+                danger: "bg-gradient-to-r from-red-500 to-rose-500 hover:from-red-600 hover:to-rose-600 text-white shadow-red-500/30",
+                outline: "bg-white border-2 border-gray-200 hover:border-blue-400 hover:bg-blue-50 text-gray-700",
+                ghost: "bg-transparent hover:bg-gray-100 text-gray-600 shadow-none",
+            };
+
+            return (
+                <button 
+                    onClick={onClick} 
+                    className={`${baseStyles} ${variants[variant]} ${className || ''}`}
+                    {...props}
+                >
+                    {children}
+                </button>
+            );
+        };
+
+        const ProgressBar = ({ current, total }) => (
+            <div className="w-full h-3 bg-gray-200 rounded-full mb-6 overflow-hidden shadow-inner">
+                <div 
+                    className="h-full bg-gradient-to-r from-blue-400 to-blue-600 transition-all duration-700 ease-out rounded-full"
+                    style={{ width: `${((current) / total) * 100}%` }}
+                ></div>
+            </div>
+        );
+
+        const HeartContainer = ({ health }) => (
+            <div className="flex gap-1.5 bg-white px-3 py-1.5 rounded-full shadow-sm border border-gray-100">
+                {[...Array(3)].map((_, i) => (
+                    <Icons.Heart 
+                        key={i} 
+                        className={`w-5 h-5 transition-all duration-300 ${i < health ? 'text-rose-500 fill-rose-500 scale-100' : 'text-gray-200 scale-90'}`} 
+                    />
+                ))}
+            </div>
+        );
+
+        // --- 主應用程式 ---
+
         function BurnSOPGame() {
             const [gameState, setGameState] = useState(GAME_STATES.START);
             const [currentLevel, setCurrentLevel] = useState(0);
@@ -178,8 +324,22 @@
             const [health, setHealth] = useState(3);
             const [showExplanation, setShowExplanation] = useState(false);
             const [shake, setShake] = useState(false);
+            const [isMuted, setIsMuted] = useState(false);
+
+            // 播放音效輔助函式
+            const playSound = (type) => {
+                if (!isMuted) {
+                    SoundGenerator.play(type);
+                }
+            };
+
+            // 滾動到頂部
+            useEffect(() => {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }, [currentLevel, gameState]);
 
             const startGame = () => {
+                playSound('click');
                 setGameState(GAME_STATES.PLAYING);
                 setCurrentLevel(0);
                 setHealth(3);
@@ -191,77 +351,83 @@
                 if (showExplanation) return; 
 
                 if (option.type === 'correct') {
+                    playSound('correct');
                     setFeedback({ type: 'correct', text: option.feedback });
                     setShowExplanation(true);
                 } else {
+                    playSound('wrong');
                     setFeedback({ type: 'wrong', text: option.feedback });
                     setHealth(prev => prev - 1);
                     setShake(true);
                     setTimeout(() => setShake(false), 500);
                     
                     if (health - 1 <= 0) {
-                        setTimeout(() => setGameState(GAME_STATES.GAME_OVER), 1500);
+                        setTimeout(() => {
+                            playSound('gameover');
+                            setGameState(GAME_STATES.GAME_OVER);
+                        }, 1500);
                     }
                 }
             };
 
             const nextLevel = () => {
+                playSound('click');
                 if (currentLevel < SCENARIOS.length - 1) {
                     setCurrentLevel(prev => prev + 1);
                     setFeedback(null);
                     setShowExplanation(false);
                 } else {
+                    playSound('victory');
                     setGameState(GAME_STATES.VICTORY);
                 }
             };
 
-            const ProgressBar = () => (
-                <div className="w-full bg-gray-200 rounded-full h-4 mb-6 border-2 border-gray-300">
-                    <div 
-                        className="bg-blue-500 h-full rounded-full transition-all duration-500 ease-out"
-                        style={{ width: `${((currentLevel) / SCENARIOS.length) * 100}%` }}
-                    ></div>
-                </div>
-            );
+            // --- 畫面元件 ---
 
-            const HealthDisplay = () => (
-                <div className="flex gap-1 mb-4">
-                    {[...Array(3)].map((_, i) => (
-                        <Heart 
-                            key={i} 
-                            className={`w-6 h-6 ${i < health ? 'text-red-500 fill-current' : 'text-gray-300'}`} 
-                        />
-                    ))}
-                </div>
+            const VolumeControl = () => (
+                <button 
+                    onClick={() => {
+                        setIsMuted(!isMuted);
+                        // 確保切換時如果不是靜音，則嘗試播放一個極短的聲音來喚醒 AudioContext
+                        if (isMuted) SoundGenerator.init();
+                    }}
+                    className="fixed top-4 right-4 z-50 p-2 bg-white/80 backdrop-blur-sm rounded-full shadow-md text-slate-600 hover:bg-white transition-all"
+                    title={isMuted ? "開啟音效" : "靜音"}
+                >
+                    {isMuted ? <Icons.VolumeX className="w-6 h-6" /> : <Icons.Volume2 className="w-6 h-6" />}
+                </button>
             );
 
             const StartScreen = () => (
-                <div className="text-center space-y-8 p-8 max-w-lg mx-auto bg-white rounded-2xl shadow-xl border-4 border-blue-100">
-                    <div className="flex justify-center mb-4">
-                        <AlertTriangle className="w-24 h-24 text-yellow-500" />
-                    </div>
-                    <h1 className="text-4xl font-black text-gray-800 tracking-tight">
-                        生活科技教室<br/>
-                        <span className="text-red-500">燙傷急救大作戰</span>
-                    </h1>
-                    <p className="text-gray-600 text-lg">
-                        在生活科技課使用電烙鐵、熱熔膠槍時發生意外了！<br/>
-                        你能在黃金時間內做出正確的判斷嗎？
-                    </p>
-                    
-                    <div className="flex flex-col gap-4">
-                        <button 
-                            onClick={startGame}
-                            className="bg-blue-600 hover:bg-blue-700 text-white text-xl font-bold py-4 px-8 rounded-xl shadow-lg transform transition hover:scale-105"
-                        >
-                            開始挑戰
-                        </button>
-                        <button 
-                            onClick={() => setGameState(GAME_STATES.LEARNING)}
-                            className="bg-green-500 hover:bg-green-600 text-white text-xl font-bold py-4 px-8 rounded-xl shadow-lg transform transition hover:scale-105"
-                        >
-                            先複習 SOP
-                        </button>
+                <div className="flex flex-col items-center animate-slide-up w-full max-w-md mx-auto">
+                    <div className="glass-panel p-8 rounded-3xl shadow-xl border border-white/50 text-center w-full relative overflow-hidden">
+                        <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500"></div>
+                        
+                        <div className="bg-yellow-100 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
+                            <Icons.AlertTriangle className="w-12 h-12 text-yellow-600" />
+                        </div>
+                        
+                        <h1 className="text-3xl md:text-4xl font-black text-slate-800 mb-2 tracking-tight">
+                            生活科技教室
+                        </h1>
+                        <h2 className="text-2xl md:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-red-500 to-orange-500 mb-6">
+                            燙傷急救大作戰
+                        </h2>
+                        
+                        <p className="text-slate-600 mb-8 leading-relaxed">
+                            工廠實習發生意外了！<br/>
+                            掌握黃金急救時間，正確執行 SOP。<br/>
+                            <span className="text-sm text-slate-400 mt-2 block">(請打開聲音以獲得最佳體驗)</span>
+                        </p>
+                        
+                        <div className="space-y-4 w-full">
+                            <Button onClick={startGame}>
+                                開始挑戰 <Icons.ChevronRight className="w-5 h-5"/>
+                            </Button>
+                            <Button variant="success" onClick={() => { playSound('click'); setGameState(GAME_STATES.LEARNING); }}>
+                                <Icons.School className="w-5 h-5"/> 先複習 SOP
+                            </Button>
+                        </div>
                     </div>
                 </div>
             );
@@ -270,66 +436,76 @@
                 const scenario = SCENARIOS[currentLevel];
                 
                 return (
-                    <div className="max-w-2xl mx-auto w-full">
-                        <div className="flex justify-between items-center mb-2">
-                                <div className="text-sm font-bold text-gray-500">關卡 {currentLevel + 1} / {SCENARIOS.length}</div>
-                                <HealthDisplay />
+                    <div className="w-full max-w-2xl mx-auto animate-pop">
+                        <div className="flex justify-between items-center mb-4 px-1">
+                            <div className="text-sm font-bold text-slate-500 bg-white/50 px-3 py-1 rounded-full backdrop-blur-sm">
+                                關卡 {currentLevel + 1} / {SCENARIOS.length}
+                            </div>
+                            <HeartContainer health={health} />
                         </div>
-                        <ProgressBar />
                         
-                        <div className={`bg-white rounded-2xl shadow-lg overflow-hidden border-2 border-gray-100 transition-all ${shake ? 'animate-shake' : ''}`}>
-                            {/* Question Header */}
-                            <div className="bg-blue-50 p-6 flex flex-col items-center text-center border-b border-blue-100">
-                                <div className="bg-white p-4 rounded-full shadow-sm mb-4">
+                        <ProgressBar current={currentLevel} total={SCENARIOS.length} />
+                        
+                        <div className={`glass-panel rounded-3xl shadow-xl overflow-hidden border border-white/60 transition-transform ${shake ? 'animate-shake ring-4 ring-red-200' : ''}`}>
+                            {/* 問題區塊 */}
+                            <div className="bg-gradient-to-b from-blue-50/80 to-transparent p-6 md:p-8 flex flex-col items-center text-center">
+                                <div className="bg-white p-4 rounded-2xl shadow-sm mb-5 transform transition hover:scale-110 duration-300">
                                     {scenario.icon}
                                 </div>
-                                <h2 className="text-2xl font-bold text-blue-800 mb-2">{scenario.stepName}</h2>
-                                <p className="text-gray-700 text-lg leading-relaxed">{scenario.description}</p>
+                                <h2 className="text-2xl font-bold text-slate-800 mb-3">{scenario.stepName}</h2>
+                                <p className="text-slate-600 text-lg leading-relaxed max-w-lg">
+                                    {scenario.description}
+                                </p>
                             </div>
 
-                            {/* Options Grid */}
-                            <div className="p-6 grid gap-4 md:grid-cols-1">
+                            {/* 選項區塊 */}
+                            <div className="p-6 md:p-8 pt-2 grid gap-4">
                                 {!showExplanation ? (
                                     scenario.options.map((option) => (
                                         <button
                                             key={option.id}
                                             onClick={() => handleOptionClick(option)}
-                                            className="group relative flex items-center p-4 border-2 border-gray-200 rounded-xl hover:border-blue-400 hover:bg-blue-50 transition-all text-left"
+                                            className="group relative flex items-center p-4 md:p-5 bg-white border-2 border-slate-100 rounded-2xl hover:border-blue-400 hover:bg-blue-50/50 hover:shadow-md transition-all text-left active:scale-[0.98]"
                                         >
-                                            <div className="bg-gray-100 text-gray-500 font-bold w-8 h-8 rounded-full flex items-center justify-center mr-4 group-hover:bg-blue-500 group-hover:text-white transition-colors">
+                                            <div className="bg-slate-100 text-slate-500 font-bold w-10 h-10 rounded-xl flex items-center justify-center mr-4 group-hover:bg-blue-500 group-hover:text-white transition-colors shrink-0">
                                                 ?
                                             </div>
-                                            <span className="text-lg font-medium text-gray-700">{option.text}</span>
+                                            <span className="text-lg font-medium text-slate-700 group-hover:text-slate-900">
+                                                {option.text}
+                                            </span>
                                         </button>
                                     ))
                                 ) : (
-                                    // Feedback View
-                                    <div className="animate-fade-in">
-                                        <div className={`p-6 rounded-xl mb-6 flex items-start gap-4 ${feedback.type === 'correct' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                                            {feedback.type === 'correct' ? <CheckCircle className="w-8 h-8 shrink-0"/> : <XCircle className="w-8 h-8 shrink-0"/>}
+                                    /* 回饋區塊 */
+                                    <div className="animate-slide-up">
+                                        <div className={`p-6 rounded-2xl mb-6 flex items-start gap-4 border ${feedback.type === 'correct' ? 'bg-green-50 border-green-200 text-green-900' : 'bg-red-50 border-red-200 text-red-900'}`}>
+                                            {feedback.type === 'correct' ? 
+                                                <Icons.CheckCircle className="w-8 h-8 shrink-0 text-green-600"/> : 
+                                                <Icons.XCircle className="w-8 h-8 shrink-0 text-red-600"/>
+                                            }
                                             <div>
-                                                <h3 className="font-bold text-xl mb-1">{feedback.type === 'correct' ? '判斷正確！' : '判斷錯誤！'}</h3>
-                                                <p>{feedback.text}</p>
+                                                <h3 className="font-bold text-xl mb-1">
+                                                    {feedback.type === 'correct' ? '判斷正確！' : '哎呀，答錯了！'}
+                                                </h3>
+                                                <p className="opacity-90 leading-relaxed">{feedback.text}</p>
                                             </div>
                                         </div>
                                         
                                         {feedback.type === 'correct' ? (
-                                            <button 
-                                                onClick={nextLevel}
-                                                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl shadow-md flex items-center justify-center gap-2 animate-bounce-short"
-                                            >
-                                                下一步 <RefreshCw className="w-5 h-5" />
-                                            </button>
+                                            <Button onClick={nextLevel} variant="primary">
+                                                下一步 <Icons.ChevronRight className="w-5 h-5" />
+                                            </Button>
                                         ) : (
-                                            <button 
+                                            <Button 
                                                 onClick={() => {
-                                                        setFeedback(null);
-                                                        setShowExplanation(false);
-                                                }}
-                                                className="w-full bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 rounded-xl shadow-md"
+                                                    playSound('click');
+                                                    setFeedback(null);
+                                                    setShowExplanation(false);
+                                                }} 
+                                                className="bg-slate-700 hover:bg-slate-800 text-white"
                                             >
-                                                再試一次
-                                            </button>
+                                                <Icons.RefreshCw className="w-5 h-5" /> 再試一次
+                                            </Button>
                                         )}
                                     </div>
                                 )}
@@ -340,99 +516,116 @@
             };
 
             const GameOverScreen = () => (
-                <div className="text-center p-8 max-w-lg mx-auto bg-white rounded-2xl shadow-xl border-t-8 border-red-500">
-                    <XCircle className="w-24 h-24 text-red-500 mx-auto mb-6" />
-                    <h2 className="text-3xl font-bold text-gray-800 mb-4">任務失敗</h2>
-                    <p className="text-gray-600 mb-8 text-lg">
-                        傷口處理不當導致了二次傷害。<br/>
-                        請重新複習「沖、脫、泡、蓋、送」口訣後再試一次！
-                    </p>
-                    <button 
-                        onClick={startGame}
-                        className="bg-blue-600 text-white text-xl font-bold py-3 px-8 rounded-xl shadow-lg hover:bg-blue-700 transition"
-                    >
-                        重新挑戰
-                    </button>
+                <div className="flex flex-col items-center animate-pop max-w-md mx-auto">
+                    <div className="glass-panel p-8 rounded-3xl shadow-2xl border-t-8 border-red-500 text-center w-full">
+                        <Icons.XCircle className="w-24 h-24 text-red-500 mx-auto mb-6 drop-shadow-lg" />
+                        <h2 className="text-3xl font-bold text-slate-800 mb-4">任務失敗</h2>
+                        <p className="text-slate-600 mb-8 text-lg">
+                            錯誤的處置可能會造成二次傷害。<br/>
+                            別氣餒，複習一下口訣再來一次！
+                        </p>
+                        <Button onClick={startGame} variant="primary">
+                            <Icons.RefreshCw className="w-5 h-5" /> 重新挑戰
+                        </Button>
+                    </div>
                 </div>
             );
 
             const VictoryScreen = () => (
-                <div className="text-center p-8 max-w-lg mx-auto bg-white rounded-2xl shadow-xl border-t-8 border-green-500 relative overflow-hidden">
-                    <div className="absolute top-0 left-0 w-full h-full bg-green-50 opacity-20 z-0"></div>
-                    <div className="relative z-10">
-                        <div className="flex justify-center mb-6">
-                            <div className="relative">
-                                <CheckCircle className="w-24 h-24 text-green-500" />
-                                <Ambulance className="w-12 h-12 text-blue-500 absolute -bottom-2 -right-2 bg-white rounded-full p-1 border-2 border-white" />
-                            </div>
-                        </div>
-                        <h2 className="text-3xl font-black text-gray-800 mb-2">恭喜通關！</h2>
-                        <p className="text-green-600 font-bold text-xl mb-6">你是生活科技教室的安全小尖兵！</p>
+                <div className="flex flex-col items-center animate-pop max-w-lg mx-auto w-full">
+                    <div className="glass-panel p-8 md:p-10 rounded-3xl shadow-2xl border-t-8 border-green-500 text-center w-full relative overflow-hidden">
+                        {/* 背景裝飾 */}
+                        <div className="absolute top-0 left-0 w-full h-full bg-green-50/50 z-0"></div>
                         
-                        <div className="bg-gray-50 p-6 rounded-xl text-left mb-8 space-y-2 border border-gray-200">
-                            <h3 className="font-bold text-gray-700 mb-2 border-b pb-2">急救口訣總複習：</h3>
-                            <li className="flex gap-2 items-center"><span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm font-bold">沖</span> 流動冷水沖洗15-30分鐘</li>
-                            <li className="flex gap-2 items-center"><span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm font-bold">脫</span> 水中小心剪開衣物</li>
-                            <li className="flex gap-2 items-center"><span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm font-bold">泡</span> 持續浸泡冷水降溫</li>
-                            <li className="flex gap-2 items-center"><span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm font-bold">蓋</span> 覆蓋乾淨濕布或紗布</li>
-                            <li className="flex gap-2 items-center"><span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm font-bold">送</span> 儘速送醫處理</li>
-                        </div>
+                        <div className="relative z-10">
+                            <div className="flex justify-center mb-8 relative">
+                                <div className="absolute inset-0 bg-green-200 rounded-full blur-xl opacity-50 animate-pulse"></div>
+                                <Icons.CheckCircle className="w-24 h-24 text-green-500 relative" />
+                            </div>
+                            
+                            <h2 className="text-4xl font-black text-slate-800 mb-2">恭喜通關！</h2>
+                            <p className="text-green-600 font-bold text-xl mb-8">你是安全小尖兵！</p>
+                            
+                            <div className="bg-white/80 rounded-2xl p-6 text-left mb-8 shadow-sm border border-green-100">
+                                <h3 className="font-bold text-slate-700 mb-4 border-b border-green-100 pb-2 text-center">急救 SOP 總複習</h3>
+                                <ul className="space-y-3">
+                                    {[
+                                        { key: "沖", text: "流動冷水 15-30 分鐘" },
+                                        { key: "脫", text: "水中小心剪開衣物" },
+                                        { key: "泡", text: "持續浸泡冷水降溫" },
+                                        { key: "蓋", text: "覆蓋乾淨濕布或紗布" },
+                                        { key: "送", text: "視情況儘速送醫" }
+                                    ].map((item, idx) => (
+                                        <li key={idx} className="flex items-center gap-3">
+                                            <span className="bg-green-100 text-green-700 px-2.5 py-1 rounded-lg text-sm font-black w-8 text-center">{item.key}</span>
+                                            <span className="text-slate-600">{item.text}</span>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
 
-                        <button 
-                            onClick={() => setGameState(GAME_STATES.START)}
-                            className="bg-blue-600 text-white text-xl font-bold py-3 px-8 rounded-xl shadow-lg hover:bg-blue-700 transition w-full"
-                        >
-                            回到首頁
-                        </button>
+                            <Button onClick={() => { playSound('click'); setGameState(GAME_STATES.START); }} variant="primary">
+                                回到首頁
+                            </Button>
+                        </div>
                     </div>
                 </div>
             );
 
             const LearningScreen = () => (
-                <div className="max-w-2xl mx-auto bg-white rounded-2xl shadow-xl overflow-hidden">
-                    <div className="bg-green-600 p-6 flex items-center gap-4">
-                        <School className="text-white w-10 h-10" />
-                        <h2 className="text-2xl font-bold text-white">燙傷急救 SOP 知識庫</h2>
-                    </div>
-                    <div className="p-8 space-y-6">
-                        {[
-                            { char: "沖", text: "流動冷水沖洗傷口15-30分鐘，目的是降低熱能，減少傷害深度。", icon: <Droplets className="text-blue-500"/> },
-                            { char: "脫", text: "在水中小心除去衣物。若衣服黏住皮膚，不可強行撕下，應用剪刀剪開。", icon: <Scissors className="text-gray-500"/> },
-                            { char: "泡", text: "繼續浸泡在冷水中15-30分鐘，可減輕疼痛並穩定情緒。", icon: <ThermometerSnowflake className="text-cyan-500"/> },
-                            { char: "蓋", text: "使用乾淨的紗布或濕毛巾覆蓋傷口，避免感染及接觸空氣造成的疼痛。", icon: <Bandage className="text-green-500"/> },
-                            { char: "送", text: "若傷勢嚴重（起水泡、面積大、或是化學灼傷），應立即送醫。", icon: <Ambulance className="text-red-500"/> },
-                        ].map((item, idx) => (
-                            <div key={idx} className="flex gap-4 items-start p-4 bg-gray-50 rounded-lg border border-gray-100">
-                                <div className="bg-white p-3 rounded-full shadow-sm shrink-0">
-                                    {item.icon}
-                                </div>
-                                <div>
-                                    <h3 className="text-2xl font-black text-gray-800 mb-1">{item.char}</h3>
-                                    <p className="text-gray-600 leading-relaxed">{item.text}</p>
-                                </div>
+                <div className="w-full max-w-2xl mx-auto animate-slide-up">
+                    <div className="glass-panel rounded-3xl shadow-xl overflow-hidden border border-white/50">
+                        <div className="bg-gradient-to-r from-emerald-500 to-green-600 p-6 flex items-center gap-4 text-white">
+                            <div className="bg-white/20 p-2 rounded-xl">
+                                <Icons.School className="w-8 h-8" />
                             </div>
-                        ))}
+                            <h2 className="text-2xl font-bold">燙傷急救 SOP 知識庫</h2>
+                        </div>
                         
-                        <button 
-                            onClick={() => setGameState(GAME_STATES.START)}
-                            className="w-full mt-8 bg-green-600 hover:bg-green-700 text-white font-bold py-4 rounded-xl shadow-md transition"
-                        >
-                            我知道了，開始測驗！
-                        </button>
+                        <div className="p-6 md:p-8 space-y-6">
+                            {[
+                                { char: "沖", text: "流動冷水沖洗傷口15-30分鐘，目的是降低熱能，減少傷害深度。", icon: <Icons.Droplets className="text-blue-500"/> },
+                                { char: "脫", text: "在水中小心除去衣物。若衣服黏住皮膚，不可強行撕下，應用剪刀剪開。", icon: <Icons.Scissors className="text-slate-500"/> },
+                                { char: "泡", text: "繼續浸泡在冷水中15-30分鐘，可減輕疼痛並穩定情緒。", icon: <Icons.ThermometerSnowflake className="text-cyan-500"/> },
+                                { char: "蓋", text: "使用乾淨的紗布或濕毛巾覆蓋傷口，避免感染及接觸空氣造成的疼痛。", icon: <Icons.Bandage className="text-emerald-500"/> },
+                                { char: "送", text: "若傷勢嚴重（起水泡、面積大、或是化學灼傷），應立即送醫。", icon: <Icons.Ambulance className="text-red-500"/> },
+                            ].map((item, idx) => (
+                                <div key={idx} className="flex gap-4 items-start p-4 bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
+                                    <div className="bg-slate-50 p-3 rounded-xl shrink-0">
+                                        {item.icon}
+                                    </div>
+                                    <div>
+                                        <h3 className="text-2xl font-black text-slate-700 mb-1">{item.char}</h3>
+                                        <p className="text-slate-600 leading-relaxed text-sm md:text-base">{item.text}</p>
+                                    </div>
+                                </div>
+                            ))}
+                            
+                            <div className="pt-4">
+                                <Button onClick={() => { playSound('click'); setGameState(GAME_STATES.START); }} variant="success">
+                                    我知道了，開始測驗！
+                                </Button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             );
 
-            return (
-                <div className="min-h-screen py-8 px-4 font-sans text-gray-900 selection:bg-blue-200 relative">
-                     {/* Background decoration */}
-                    <div className="fixed inset-0 z-0 opacity-5 pointer-events-none">
-                        <div className="absolute top-10 left-10 w-32 h-32 bg-blue-500 rounded-full mix-blend-multiply filter blur-xl animate-blob"></div>
-                        <div className="absolute top-10 right-10 w-32 h-32 bg-purple-500 rounded-full mix-blend-multiply filter blur-xl animate-blob animation-delay-2000"></div>
-                        <div className="absolute bottom-20 left-20 w-32 h-32 bg-pink-500 rounded-full mix-blend-multiply filter blur-xl animate-blob animation-delay-4000"></div>
-                    </div>
+            // 背景動畫球
+            const BackgroundBlobs = () => (
+                <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none opacity-60">
+                    <div className="absolute top-0 left-10 w-64 h-64 bg-blue-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob"></div>
+                    <div className="absolute top-0 right-10 w-64 h-64 bg-purple-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-2000"></div>
+                    <div className="absolute -bottom-32 left-20 w-64 h-64 bg-pink-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-4000"></div>
+                </div>
+            );
 
-                    <div className="relative z-10">
+            return (
+                <div className="relative min-h-screen py-8 px-4 flex flex-col justify-center">
+                    <BackgroundBlobs />
+                    <VolumeControl />
+                    
+                    <div className="relative z-10 w-full">
                         {gameState === GAME_STATES.START && <StartScreen />}
                         {gameState === GAME_STATES.PLAYING && <PlayingScreen />}
                         {gameState === GAME_STATES.GAME_OVER && <GameOverScreen />}
@@ -440,9 +633,8 @@
                         {gameState === GAME_STATES.LEARNING && <LearningScreen />}
                     </div>
 
-                    <div className="text-center mt-12 text-gray-400 text-sm relative z-10">
-                        <p>生活科技教室安全教育素材</p>
-                        <p>口訣：沖、脫、泡、蓋、送</p>
+                    <div className="text-center mt-12 text-slate-400 text-xs md:text-sm relative z-10 font-medium tracking-wide">
+                        <p>生活科技教室安全教育素材 © {new Date().getFullYear()}</p>
                     </div>
                 </div>
             );
