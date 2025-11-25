@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>生活科技教室：燙傷急救大作戰</title>
+    
+    <!-- 引入 React 和 ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- 引入 Babel 用於解析 JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- 引入 Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- 定義動畫樣式 -->
+    <style>
+        @keyframes shake {
+          0%, 100% { transform: translateX(0); }
+          10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+          20%, 40%, 60%, 80% { transform: translateX(5px); }
+        }
+        .animate-shake {
+          animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both;
+        }
+        .animate-blob {
+          animation: blob 7s infinite;
+        }
+        @keyframes blob {
+          0% { transform: translate(0px, 0px) scale(1); }
+          33% { transform: translate(30px, -50px) scale(1.1); }
+          66% { transform: translate(-20px, 20px) scale(0.9); }
+          100% { transform: translate(0px, 0px) scale(1); }
+        }
+        .animation-delay-2000 { animation-delay: 2s; }
+        .animation-delay-4000 { animation-delay: 4s; }
+        .animate-bounce-short {
+            animation: bounce 1s infinite;
+        }
+        @keyframes bounce {
+            0%, 100% { transform: translateY(-5%); animation-timing-function: cubic-bezier(0.8, 0, 1, 1); }
+            50% { transform: translateY(0); animation-timing-function: cubic-bezier(0, 0, 0.2, 1); }
+        }
+        .animate-fade-in {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="bg-slate-100">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // --- Icons Components (內嵌 SVG 以確保單檔執行無誤) ---
+        const IconBase = ({ children, className, ...props }) => (
+            <svg 
+                xmlns="http://www.w3.org/2000/svg" 
+                width="24" height="24" viewBox="0 0 24 24" 
+                fill="none" stroke="currentColor" strokeWidth="2" 
+                strokeLinecap="round" strokeLinejoin="round" 
+                className={className} {...props}
+            >
+                {children}
+            </svg>
+        );
+
+        const Flame = (props) => (
+            <IconBase {...props}><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-2.24-4.056-2.953-5.26a1.996 1.996 0 0 1 2.37-2.673C11.956 2.362 13.986 4.6 14.392 7.234a4.004 4.004 0 0 0 2.227-2.173 8.01 8.01 0 0 1 1.764 7.641 2.497 2.497 0 0 0 .543 2.58c1.378 1.48 2.074 2.3 2.074 4.218C21 21.61 19.388 23 17.5 23h-9C5.322 23 4 21.572 4 19.5c0-2.486 1.83-4.5 4.5-5z"/></IconBase>
+        );
+        const School = (props) => (
+            <IconBase {...props}><path d="M14 22v-4a2 2 0 1 0-4 0v4"/><path d="m18 10 4 2v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-8l4-2"/><path d="M18 5v17"/><path d="m4 6 8-4 8 4"/><path d="M6 5v17"/><circle cx="12" cy="9" r="2"/></IconBase>
+        );
+        const Droplets = (props) => (
+            <IconBase {...props}><path d="M7 16.3c2.2 0 4-1.83 4-4.05 0-1.16-.57-2.26-1.71-3.19S7.29 6.75 7 5.3c-.29 1.45-1.14 2.84-2.29 3.76S3 11.1 3 12.25c0 2.22 1.8 4.05 4 4.05z"/><path d="M12.56 6.6A10.97 10.97 0 0 0 14 3.02c.5 2.5 2 4.9 4 6.5s3 3.5 3 5.5a6.98 6.98 0 0 1-11.91 4.35c.71-1.11 1.16-2.33 1.16-4.02 0-1.28-.45-2.53-1.69-3.75"/></IconBase>
+        );
+        const Bandage = (props) => (
+            <IconBase {...props}><path d="M14 12v.01"/><path d="M10 12v.01"/><path d="M8.5 14c0 1.1-.9 2-2 2h-1c-1.1 0-2-.9-2-2V8c0-1.1.9-2 2-2h1c1.1 0 2 .9 2 2v6Z" transform="rotate(-45 12 12)"/><path d="M17.5 10c0 1.1-.9 2-2 2h-1c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h1c1.1 0 2 .9 2 2v6Z" transform="rotate(45 12 12)"/></IconBase>
+        );
+        const Ambulance = (props) => (
+            <IconBase {...props}><path d="M10 10h4"/><path d="M12 8v4"/><path d="M19 17h1.5c.3 0 .6-.1.8-.4l2-3c.2-.3.2-.6.2-1v-4c0-.6-.4-1-1-1H16"/><path d="M4 17h3"/><path d="M7 17a3 3 0 0 1 3 3v0a3 3 0 0 1-3 3 3 3 0 0 1-3-3v0a3 3 0 0 1 3-3Z"/><path d="M15 17h1"/><path d="M16 17a3 3 0 0 1 3 3v0a3 3 0 0 1-3 3 3 3 0 0 1-3-3v0a3 3 0 0 1 3-3Z"/><path d="M10 17h6"/><path d="M1 5h12a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H1a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Z"/></IconBase>
+        );
+        const AlertTriangle = (props) => (
+            <IconBase {...props}><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></IconBase>
+        );
+        const CheckCircle = (props) => (
+            <IconBase {...props}><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></IconBase>
+        );
+        const XCircle = (props) => (
+            <IconBase {...props}><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></IconBase>
+        );
+        const Scissors = (props) => (
+            <IconBase {...props}><circle cx="6" cy="6" r="3"/><path d="M8.12 8.12 12 12"/><path d="M20 4 8.12 15.88"/><circle cx="6" cy="18" r="3"/><path d="M14.8 14.8 20 20"/></IconBase>
+        );
+        const ThermometerSnowflake = (props) => (
+            <IconBase {...props}><path d="M2 12h10"/><path d="M9 4v16"/><path d="m3 9 3 3-3 3"/><path d="M12 6a9 9 0 0 0 0 12v-3"/><path d="M12 3a9 9 0 0 1 9 9 9 9 0 0 1-9 9"/></IconBase>
+        );
+        const RefreshCw = (props) => (
+            <IconBase {...props}><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></IconBase>
+        );
+        const Heart = (props) => (
+            <IconBase {...props}><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></IconBase>
+        );
+
+        // --- Game Logic ---
+        
+        const GAME_STATES = {
+            START: 'start',
+            PLAYING: 'playing',
+            GAME_OVER: 'game_over',
+            VICTORY: 'victory',
+            LEARNING: 'learning'
+        };
+
+        const SCENARIOS = [
+            {
+                stepName: "第一步：沖",
+                description: "你在焊接電路板時，不小心被高溫的電烙鐵燙到了手背！現在非常痛，你該怎麼做？",
+                icon: <Flame className="w-16 h-16 text-orange-500 animate-pulse" />,
+                options: [
+                    { id: 'ice', text: "直接拿冰塊冰敷", type: 'wrong', feedback: "錯誤！直接冰敷會造成血管過度收縮，甚至導致凍傷。" },
+                    { id: 'water', text: "用流動的冷水沖洗傷口", type: 'correct', feedback: "正確！流動的冷水可以帶走熱能，降低組織傷害。至少沖洗15-30分鐘。" },
+                    { id: 'paste', text: "塗抹牙膏或藥膏", type: 'wrong', feedback: "錯誤！塗抹牙膏會不僅無法降溫，還會造成傷口感染，增加醫生處理難度。" }
+                ]
+            },
+            {
+                stepName: "第二步：脫",
+                description: "已經沖水一陣子了，但你穿著長袖的實習工廠制服，袖子覆蓋在傷口上。下一步？",
+                icon: <School className="w-16 h-16 text-blue-500" />,
+                options: [
+                    { id: 'rip', text: "用力把袖子扯下來", type: 'wrong', feedback: "錯誤！強行脫掉可能會連同水泡或皮膚一起撕下，造成二次傷害。" },
+                    { id: 'cut', text: "在水中小心剪開或脫去衣物", type: 'correct', feedback: "正確！利用水的潤滑，小心地剪開或移除衣物。如果黏住皮膚就不要硬脫。" },
+                    { id: 'wait', text: "先不要管衣服，繼續沖", type: 'wrong', feedback: "不完全正確。如果不移除衣物，熱能會被包在衣服裡持續傷害皮膚。" }
+                ]
+            },
+            {
+                stepName: "第三步：泡",
+                description: "衣物已經移除了。為了持續降溫並減輕疼痛，你應該？",
+                icon: <Droplets className="w-16 h-16 text-blue-400" />,
+                options: [
+                    { id: 'soak', text: "繼續浸泡在冷水中", type: 'correct', feedback: "正確！浸泡冷水（約15-30分鐘）可以持續降溫並減輕疼痛。" },
+                    { id: 'alcohol', text: "浸泡在酒精裡消毒", type: 'wrong', feedback: "錯誤！酒精會刺激傷口，造成劇烈疼痛並破壞組織。" },
+                    { id: 'soy', text: "塗抹醬油", type: 'wrong', feedback: "錯誤！這是偏方，容易造成傷口感染發炎。" }
+                ]
+            },
+            {
+                stepName: "第四步：蓋",
+                description: "疼痛感稍微減輕了。現在要準備前往保健室或醫院，保護傷口該怎麼做？",
+                icon: <Bandage className="w-16 h-16 text-green-500" />,
+                options: [
+                    { id: 'tissue', text: "用衛生紙包起來", type: 'wrong', feedback: "錯誤！衛生紙遇水會爛掉並黏在傷口上，極難清理。" },
+                    { id: 'cotton', text: "用棉花棒擦乾", type: 'wrong', feedback: "錯誤！棉絮會黏在傷口上。" },
+                    { id: 'cloth', text: "蓋上乾淨的濕布或紗布", type: 'correct', feedback: "正確！使用乾淨、濕潤的布或無菌紗布覆蓋，可以保護傷口並保持濕潤。" }
+                ]
+            },
+            {
+                stepName: "第五步：送",
+                description: "傷口已經初步處理並覆蓋好了。最後一步？",
+                icon: <Ambulance className="w-16 h-16 text-red-500" />,
+                options: [
+                    { id: 'home', text: "沒事了，回教室繼續上課", type: 'wrong', feedback: "錯誤！燙傷程度需要由專業人員判斷。" },
+                    { id: 'hospital', text: "儘速送醫或找校護處理", type: 'correct', feedback: "正確！對於嚴重或面積大的燙傷，必須交由專業醫護人員處理。" },
+                    { id: 'wait', text: "在教室休息等它好", type: 'wrong', feedback: "錯誤！延誤治療可能會導致留疤或感染。" }
+                ]
+            }
+        ];
+
+        function BurnSOPGame() {
+            const [gameState, setGameState] = useState(GAME_STATES.START);
+            const [currentLevel, setCurrentLevel] = useState(0);
+            const [feedback, setFeedback] = useState(null);
+            const [health, setHealth] = useState(3);
+            const [showExplanation, setShowExplanation] = useState(false);
+            const [shake, setShake] = useState(false);
+
+            const startGame = () => {
+                setGameState(GAME_STATES.PLAYING);
+                setCurrentLevel(0);
+                setHealth(3);
+                setFeedback(null);
+                setShowExplanation(false);
+            };
+
+            const handleOptionClick = (option) => {
+                if (showExplanation) return; 
+
+                if (option.type === 'correct') {
+                    setFeedback({ type: 'correct', text: option.feedback });
+                    setShowExplanation(true);
+                } else {
+                    setFeedback({ type: 'wrong', text: option.feedback });
+                    setHealth(prev => prev - 1);
+                    setShake(true);
+                    setTimeout(() => setShake(false), 500);
+                    
+                    if (health - 1 <= 0) {
+                        setTimeout(() => setGameState(GAME_STATES.GAME_OVER), 1500);
+                    }
+                }
+            };
+
+            const nextLevel = () => {
+                if (currentLevel < SCENARIOS.length - 1) {
+                    setCurrentLevel(prev => prev + 1);
+                    setFeedback(null);
+                    setShowExplanation(false);
+                } else {
+                    setGameState(GAME_STATES.VICTORY);
+                }
+            };
+
+            const ProgressBar = () => (
+                <div className="w-full bg-gray-200 rounded-full h-4 mb-6 border-2 border-gray-300">
+                    <div 
+                        className="bg-blue-500 h-full rounded-full transition-all duration-500 ease-out"
+                        style={{ width: `${((currentLevel) / SCENARIOS.length) * 100}%` }}
+                    ></div>
+                </div>
+            );
+
+            const HealthDisplay = () => (
+                <div className="flex gap-1 mb-4">
+                    {[...Array(3)].map((_, i) => (
+                        <Heart 
+                            key={i} 
+                            className={`w-6 h-6 ${i < health ? 'text-red-500 fill-current' : 'text-gray-300'}`} 
+                        />
+                    ))}
+                </div>
+            );
+
+            const StartScreen = () => (
+                <div className="text-center space-y-8 p-8 max-w-lg mx-auto bg-white rounded-2xl shadow-xl border-4 border-blue-100">
+                    <div className="flex justify-center mb-4">
+                        <AlertTriangle className="w-24 h-24 text-yellow-500" />
+                    </div>
+                    <h1 className="text-4xl font-black text-gray-800 tracking-tight">
+                        生活科技教室<br/>
+                        <span className="text-red-500">燙傷急救大作戰</span>
+                    </h1>
+                    <p className="text-gray-600 text-lg">
+                        在生活科技課使用電烙鐵、熱熔膠槍時發生意外了！<br/>
+                        你能在黃金時間內做出正確的判斷嗎？
+                    </p>
+                    
+                    <div className="flex flex-col gap-4">
+                        <button 
+                            onClick={startGame}
+                            className="bg-blue-600 hover:bg-blue-700 text-white text-xl font-bold py-4 px-8 rounded-xl shadow-lg transform transition hover:scale-105"
+                        >
+                            開始挑戰
+                        </button>
+                        <button 
+                            onClick={() => setGameState(GAME_STATES.LEARNING)}
+                            className="bg-green-500 hover:bg-green-600 text-white text-xl font-bold py-4 px-8 rounded-xl shadow-lg transform transition hover:scale-105"
+                        >
+                            先複習 SOP
+                        </button>
+                    </div>
+                </div>
+            );
+
+            const PlayingScreen = () => {
+                const scenario = SCENARIOS[currentLevel];
+                
+                return (
+                    <div className="max-w-2xl mx-auto w-full">
+                        <div className="flex justify-between items-center mb-2">
+                                <div className="text-sm font-bold text-gray-500">關卡 {currentLevel + 1} / {SCENARIOS.length}</div>
+                                <HealthDisplay />
+                        </div>
+                        <ProgressBar />
+                        
+                        <div className={`bg-white rounded-2xl shadow-lg overflow-hidden border-2 border-gray-100 transition-all ${shake ? 'animate-shake' : ''}`}>
+                            {/* Question Header */}
+                            <div className="bg-blue-50 p-6 flex flex-col items-center text-center border-b border-blue-100">
+                                <div className="bg-white p-4 rounded-full shadow-sm mb-4">
+                                    {scenario.icon}
+                                </div>
+                                <h2 className="text-2xl font-bold text-blue-800 mb-2">{scenario.stepName}</h2>
+                                <p className="text-gray-700 text-lg leading-relaxed">{scenario.description}</p>
+                            </div>
+
+                            {/* Options Grid */}
+                            <div className="p-6 grid gap-4 md:grid-cols-1">
+                                {!showExplanation ? (
+                                    scenario.options.map((option) => (
+                                        <button
+                                            key={option.id}
+                                            onClick={() => handleOptionClick(option)}
+                                            className="group relative flex items-center p-4 border-2 border-gray-200 rounded-xl hover:border-blue-400 hover:bg-blue-50 transition-all text-left"
+                                        >
+                                            <div className="bg-gray-100 text-gray-500 font-bold w-8 h-8 rounded-full flex items-center justify-center mr-4 group-hover:bg-blue-500 group-hover:text-white transition-colors">
+                                                ?
+                                            </div>
+                                            <span className="text-lg font-medium text-gray-700">{option.text}</span>
+                                        </button>
+                                    ))
+                                ) : (
+                                    // Feedback View
+                                    <div className="animate-fade-in">
+                                        <div className={`p-6 rounded-xl mb-6 flex items-start gap-4 ${feedback.type === 'correct' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                                            {feedback.type === 'correct' ? <CheckCircle className="w-8 h-8 shrink-0"/> : <XCircle className="w-8 h-8 shrink-0"/>}
+                                            <div>
+                                                <h3 className="font-bold text-xl mb-1">{feedback.type === 'correct' ? '判斷正確！' : '判斷錯誤！'}</h3>
+                                                <p>{feedback.text}</p>
+                                            </div>
+                                        </div>
+                                        
+                                        {feedback.type === 'correct' ? (
+                                            <button 
+                                                onClick={nextLevel}
+                                                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl shadow-md flex items-center justify-center gap-2 animate-bounce-short"
+                                            >
+                                                下一步 <RefreshCw className="w-5 h-5" />
+                                            </button>
+                                        ) : (
+                                            <button 
+                                                onClick={() => {
+                                                        setFeedback(null);
+                                                        setShowExplanation(false);
+                                                }}
+                                                className="w-full bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 rounded-xl shadow-md"
+                                            >
+                                                再試一次
+                                            </button>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                );
+            };
+
+            const GameOverScreen = () => (
+                <div className="text-center p-8 max-w-lg mx-auto bg-white rounded-2xl shadow-xl border-t-8 border-red-500">
+                    <XCircle className="w-24 h-24 text-red-500 mx-auto mb-6" />
+                    <h2 className="text-3xl font-bold text-gray-800 mb-4">任務失敗</h2>
+                    <p className="text-gray-600 mb-8 text-lg">
+                        傷口處理不當導致了二次傷害。<br/>
+                        請重新複習「沖、脫、泡、蓋、送」口訣後再試一次！
+                    </p>
+                    <button 
+                        onClick={startGame}
+                        className="bg-blue-600 text-white text-xl font-bold py-3 px-8 rounded-xl shadow-lg hover:bg-blue-700 transition"
+                    >
+                        重新挑戰
+                    </button>
+                </div>
+            );
+
+            const VictoryScreen = () => (
+                <div className="text-center p-8 max-w-lg mx-auto bg-white rounded-2xl shadow-xl border-t-8 border-green-500 relative overflow-hidden">
+                    <div className="absolute top-0 left-0 w-full h-full bg-green-50 opacity-20 z-0"></div>
+                    <div className="relative z-10">
+                        <div className="flex justify-center mb-6">
+                            <div className="relative">
+                                <CheckCircle className="w-24 h-24 text-green-500" />
+                                <Ambulance className="w-12 h-12 text-blue-500 absolute -bottom-2 -right-2 bg-white rounded-full p-1 border-2 border-white" />
+                            </div>
+                        </div>
+                        <h2 className="text-3xl font-black text-gray-800 mb-2">恭喜通關！</h2>
+                        <p className="text-green-600 font-bold text-xl mb-6">你是生活科技教室的安全小尖兵！</p>
+                        
+                        <div className="bg-gray-50 p-6 rounded-xl text-left mb-8 space-y-2 border border-gray-200">
+                            <h3 className="font-bold text-gray-700 mb-2 border-b pb-2">急救口訣總複習：</h3>
+                            <li className="flex gap-2 items-center"><span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm font-bold">沖</span> 流動冷水沖洗15-30分鐘</li>
+                            <li className="flex gap-2 items-center"><span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm font-bold">脫</span> 水中小心剪開衣物</li>
+                            <li className="flex gap-2 items-center"><span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm font-bold">泡</span> 持續浸泡冷水降溫</li>
+                            <li className="flex gap-2 items-center"><span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm font-bold">蓋</span> 覆蓋乾淨濕布或紗布</li>
+                            <li className="flex gap-2 items-center"><span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm font-bold">送</span> 儘速送醫處理</li>
+                        </div>
+
+                        <button 
+                            onClick={() => setGameState(GAME_STATES.START)}
+                            className="bg-blue-600 text-white text-xl font-bold py-3 px-8 rounded-xl shadow-lg hover:bg-blue-700 transition w-full"
+                        >
+                            回到首頁
+                        </button>
+                    </div>
+                </div>
+            );
+
+            const LearningScreen = () => (
+                <div className="max-w-2xl mx-auto bg-white rounded-2xl shadow-xl overflow-hidden">
+                    <div className="bg-green-600 p-6 flex items-center gap-4">
+                        <School className="text-white w-10 h-10" />
+                        <h2 className="text-2xl font-bold text-white">燙傷急救 SOP 知識庫</h2>
+                    </div>
+                    <div className="p-8 space-y-6">
+                        {[
+                            { char: "沖", text: "流動冷水沖洗傷口15-30分鐘，目的是降低熱能，減少傷害深度。", icon: <Droplets className="text-blue-500"/> },
+                            { char: "脫", text: "在水中小心除去衣物。若衣服黏住皮膚，不可強行撕下，應用剪刀剪開。", icon: <Scissors className="text-gray-500"/> },
+                            { char: "泡", text: "繼續浸泡在冷水中15-30分鐘，可減輕疼痛並穩定情緒。", icon: <ThermometerSnowflake className="text-cyan-500"/> },
+                            { char: "蓋", text: "使用乾淨的紗布或濕毛巾覆蓋傷口，避免感染及接觸空氣造成的疼痛。", icon: <Bandage className="text-green-500"/> },
+                            { char: "送", text: "若傷勢嚴重（起水泡、面積大、或是化學灼傷），應立即送醫。", icon: <Ambulance className="text-red-500"/> },
+                        ].map((item, idx) => (
+                            <div key={idx} className="flex gap-4 items-start p-4 bg-gray-50 rounded-lg border border-gray-100">
+                                <div className="bg-white p-3 rounded-full shadow-sm shrink-0">
+                                    {item.icon}
+                                </div>
+                                <div>
+                                    <h3 className="text-2xl font-black text-gray-800 mb-1">{item.char}</h3>
+                                    <p className="text-gray-600 leading-relaxed">{item.text}</p>
+                                </div>
+                            </div>
+                        ))}
+                        
+                        <button 
+                            onClick={() => setGameState(GAME_STATES.START)}
+                            className="w-full mt-8 bg-green-600 hover:bg-green-700 text-white font-bold py-4 rounded-xl shadow-md transition"
+                        >
+                            我知道了，開始測驗！
+                        </button>
+                    </div>
+                </div>
+            );
+
+            return (
+                <div className="min-h-screen py-8 px-4 font-sans text-gray-900 selection:bg-blue-200 relative">
+                     {/* Background decoration */}
+                    <div className="fixed inset-0 z-0 opacity-5 pointer-events-none">
+                        <div className="absolute top-10 left-10 w-32 h-32 bg-blue-500 rounded-full mix-blend-multiply filter blur-xl animate-blob"></div>
+                        <div className="absolute top-10 right-10 w-32 h-32 bg-purple-500 rounded-full mix-blend-multiply filter blur-xl animate-blob animation-delay-2000"></div>
+                        <div className="absolute bottom-20 left-20 w-32 h-32 bg-pink-500 rounded-full mix-blend-multiply filter blur-xl animate-blob animation-delay-4000"></div>
+                    </div>
+
+                    <div className="relative z-10">
+                        {gameState === GAME_STATES.START && <StartScreen />}
+                        {gameState === GAME_STATES.PLAYING && <PlayingScreen />}
+                        {gameState === GAME_STATES.GAME_OVER && <GameOverScreen />}
+                        {gameState === GAME_STATES.VICTORY && <VictoryScreen />}
+                        {gameState === GAME_STATES.LEARNING && <LearningScreen />}
+                    </div>
+
+                    <div className="text-center mt-12 text-gray-400 text-sm relative z-10">
+                        <p>生活科技教室安全教育素材</p>
+                        <p>口訣：沖、脫、泡、蓋、送</p>
+                    </div>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<BurnSOPGame />);
+    </script>
+</body>
+</html>
